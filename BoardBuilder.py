@@ -3,6 +3,7 @@
 import argparse
 import json
 import math
+import os
 import sys
 
 from solid import *
@@ -405,22 +406,23 @@ class BoardBuilder:
                 )
             )
 
-    def render_top_plate(self):
-        scad_render_to_file(self.base_top_plate, "top.scad", include_orig_code=False)
+    def render_top_plate(self, output_dir):
+        scad_render_to_file(self.base_top_plate, os.path.join(output_dir, "top.scad"), include_orig_code=False)
 
-    def render_bottom_plate(self):
-        scad_render_to_file(self.base_bottom_plate, "bottom.scad", include_orig_code=False)
+    def render_bottom_plate(self, output_dir):
+        scad_render_to_file(self.base_bottom_plate, os.path.join(output_dir, "bottom.scad"), include_orig_code=False)
 
-    def render_mid_layers(self):
+    def render_mid_layers(self, output_dir):
         if self.mid_layers:
-            scad_render_to_file(self.mid_layers, "mid_closed.scad", include_orig_code=False)
+            scad_render_to_file(self.mid_layers, os.path.join(output_dir, "mid_closed.scad"), include_orig_code=False)
 
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-j',  '--json',            type=str,   default='', required=True, help="JSON file to load.  Raw data from keyboard-layout-editor.com.")
+    parser.add_argument('-j',  '--json',            type=str,   default='',  required=True, help="JSON file to load.  Raw data download from keyboard-layout-editor.com.")
+    parser.add_argument('-o',  '--output_dir',      type=str,   default='.', help="Directory into which the resulting .scad files will be generated.")
     parser.add_argument('-hp', '--horizontal_pad',  type=float, default=0.0, help="Horizontal padding per side.")
     parser.add_argument('-vp', '--vertical_pad',    type=float, default=0.0, help="Vertical padding per side.")
     parser.add_argument('-c',  '--corner_radius',   type=float, default=0.0, help="Corner radius.")
@@ -438,6 +440,6 @@ if __name__ == "__main__":
                          args.hole_diameter,
                          args.show_points)
 
-    board.render_top_plate()
-    board.render_bottom_plate()
-    board.render_mid_layers()
+    board.render_top_plate(args.output_dir)
+    board.render_bottom_plate(args.output_dir)
+    board.render_mid_layers(args.output_dir)

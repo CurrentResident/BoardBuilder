@@ -1,5 +1,21 @@
 BoardBuilder
 Copyright (c) 2016, Jim Thoenen
+All rights reserved.  See license below.
+
+This is a python script that turns keyboard layout JSON files from
+www.keyboard-layout-editor.com and generates OpenSCAD .scad files that can be
+further modified and exported to .dxf or other formats as desired within
+OpenSCAD.
+
+Workflow-wise, I find what works best hand-coding my own top-level .scad files,
+defining one module for each desired plate, and including the generated plate
+scad file by name within the module.  It separates the hand-mods from the auto
+generated plates cleanly, and works nicely with OpenSCAD's automatic reloading
+of externally-modified open scad files.
+
+------------
+BoardBuilder
+Copyright (c) 2016, Jim Thoenen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
