@@ -10,7 +10,7 @@ from solid import *
 from solid.utils import *
 
 class BoardBuilder:
-    def __init__(self, kle_json, horizontal_pad, vertical_pad, corner_radius, num_holes, hole_diameter, show_points):
+    def __init__(self, kle_json, horizontal_pad, vertical_pad, corner_radius, num_holes, hole_diameter, show_points, stabs):
 
         f = open(kle_json)
         self.layout = json.load(f)
@@ -22,6 +22,7 @@ class BoardBuilder:
         self.max_y = 0
 
         self.show_points = show_points
+        self.stabs       = stabs
 
         self.corner_radius = corner_radius
 
@@ -141,16 +142,32 @@ class BoardBuilder:
             # One real nice thing about CSG is that you can just "follow the lines" on a spec drawing
             # with ordinary translations.
             #
-            # TODO: Add a way of specifying ONLY costar or ONLY Cherry stabs
-            #
-            return union()(
+            if self.stabs in ('both', 'cherry'):
+                s = union()(
                     translate( [ 0, -6.77, 0 ] )(
                         union()(
                             translate( [ -3.325, 0, 0 ] )(
                                 square(size=[6.65, 12.3 ] )
                             ),
-                            translate( [ -1.65, -1.2, 0 ] )(        # + Costar cutout
+
+                            # Costar cutout.  Ideally, X should be -1.6, but to line up with the Cherry cutout,
+                            # it needs to be closer in by .05 mm.  Also, it needs to be "lower" than typical costar.
+                            # I think we can live with that.
+                            #
+                            # Here's how we get to -1.6 from center of cutout:
+                            #
+                            #        |--------A--------|     A == 23.8 mm per Cherry spec
+                            #         |-------B-------|      B == 20.6 mm per some internet people.
+                            #       +-+   +-------+   +-+
+                            #       | |   |       |   | |
+                            #       | |   |       |   | |
+                            #       | |   |       |   | |
+                            #       +-+   +-------+   +-+
+
+                            translate( [ -1.65, -1.2, 0 ] )(        # Bottom notch + Costar cutout.
                                 square(size=[3.3, 14 ] )
+                            ) if self.stabs == 'both' else translate( [-1.5, -1.2, 0] )(
+                                square(size=[3.0, 2 ])
                             )
                         )
                     ),
@@ -158,6 +175,14 @@ class BoardBuilder:
                         square(size=[4.2, 2.8 ] )
                     )
                 )
+
+            elif self.stabs == 'costar':
+
+                s = translate( [ -1.6, -7.75, 0 ] )(
+                    square(size=[3.3, 14])
+                    )
+
+            return s
 
         def build_stab(a, left=None, right=None):
 
@@ -167,14 +192,31 @@ class BoardBuilder:
                 left  = a / 2
                 right = a / 2
 
-            # The stab is a union of the right cutout, the left cutout, and a connecting rectangle.
+            # The stab is a union of the right cutout, the left cutout, and a connecting rectangle, for Cherry-
+            # style stabs.
             stab = union()(
                 translate( [ right, 0, 0 ] )(combined_stab),
-                translate( [ -left, 0, 0 ] )(mirror( [ 1, 0, 0 ] )(combined_stab)),
-                translate( [ (right - left) / 2, 0, 0 ] )(
-                    square(size=[right+left, 4.6], center=True)
+                translate( [ -left, 0, 0 ] )(mirror( [ 1, 0, 0 ] )(combined_stab))
                 )
-            )
+
+            if self.stabs in ('both', 'cherry'):
+                stab = union()(
+                    stab,
+                    translate( [ (right - left) / 2, 0, 0 ] )(
+                        square(size=[right+left, 4.6], center=True)
+                    )
+                )
+
+                # The 2u stab has an extra cutout.
+                #   See http://cherryamericas.com/wp-content/uploads/2014/12/mx_cat.pdf
+
+                if a < 24:
+                    stab = union()(
+                        stab,
+                        translate( [ -11.9, -5.97, 0 ] )(
+                            square(size=[23.8, 10.7 ] )
+                        )
+                    )
 
             return stab
 
@@ -201,7 +243,7 @@ class BoardBuilder:
 
             #elif width_factor >= 6.0 or height_factor >= 6.0:
 
-                # TODO: Deal with this case.
+                # TODO: Deal with this asymmetrical case.
 
             elif width_factor >= 3.0 or height_factor >= 3.0:
 
@@ -209,15 +251,7 @@ class BoardBuilder:
 
             else:
 
-                # The 2u stab has an extra cutout.
-                #   See http://cherryamericas.com/wp-content/uploads/2014/12/mx_cat.pdf
-
-                stab = union()(
-                    build_stab(23.8),
-                    translate( [ -11.9, -5.97, 0 ] )(
-                        square(size=[23.8, 10.7 ] )
-                    )
-                )
+                stab = build_stab(23.8)
 
             # Important note: Because the plate gets flipped at the end, we have to build
             #   the geometry upside down!  i.e. notice the mirror call
@@ -423,6 +457,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-j',  '--json',            type=str,   default='',  required=True, help="JSON file to load.  Raw data download from keyboard-layout-editor.com.")
     parser.add_argument('-o',  '--output_dir',      type=str,   default='.', help="Directory into which the resulting .scad files will be generated.")
+    parser.add_argument('-s',  '--stabs',           choices=['both', 'cherry', 'costar'], default='both', help="Specify the style of stabilizers to generate.")
     parser.add_argument('-hp', '--horizontal_pad',  type=float, default=0.0, help="Horizontal padding per side.")
     parser.add_argument('-vp', '--vertical_pad',    type=float, default=0.0, help="Vertical padding per side.")
     parser.add_argument('-c',  '--corner_radius',   type=float, default=0.0, help="Corner radius.")
@@ -438,7 +473,8 @@ if __name__ == "__main__":
                          args.corner_radius,
                          args.num_holes,
                          args.hole_diameter,
-                         args.show_points)
+                         args.show_points,
+                         args.stabs)
 
     board.render_top_plate(args.output_dir)
     board.render_bottom_plate(args.output_dir)
