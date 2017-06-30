@@ -29,8 +29,23 @@ class BoardBuilder:
         self.num_holes = num_holes
         self.hole_diameter = hole_diameter
 
+        #Determine the left and right padding
         self.horizontal_pad = horizontal_pad
-        self.vertical_pad   = vertical_pad
+        try:
+            left_padding, right_padding = horizontal_pad.split(',')
+            self.left_pad = int(left_padding)
+            self.right_pad = int(right_padding)
+        except:
+            self.left_pad = self.right_pad = int(horizontal_pad)
+
+        # Determine the left and right padding
+        self.vertical_pad = vertical_pad
+        try:
+            top_padding, bottom_padding = vertical_pad.split(',')
+            self.top_pad = int(top_padding)
+            self.bottom_pad = int(bottom_padding)
+        except:
+            self.top_pad = self.bottom_pad = int(vertical_pad)
 
         # Build the bottom plate after the top one because the plate dimensions are calculated
         # while building the top plate.
@@ -50,10 +65,7 @@ class BoardBuilder:
             self.base_bottom_plate = self.apply_screw_holes(self.base_bottom_plate)
 
         # Create any mid layers by subtracting the interior section out of the bottom plate.
-        if (self.horizontal_pad > 0 or self.vertical_pad > 0):
-            self.mid_layers = self.build_mid_layers(self.base_bottom_plate)
-        else:
-            self.mid_layers = None
+        self.mid_layers = self.build_mid_layers(self.base_bottom_plate)
 
     def update_mins_maxes(self, points):
         for point in points:
@@ -100,7 +112,7 @@ class BoardBuilder:
 
     def apply_screw_holes(self, plate):
 
-        edge_distance = max(self.horizontal_pad / 2, self.vertical_pad / 2)
+        edge_distance = min(self.left_pad / 2, self.right_pad / 2, self.bottom_pad / 2, self.top_pad / 2)
 
         def build_screw_hole_row(y):
 
@@ -405,12 +417,12 @@ class BoardBuilder:
         self.interior_width  = self.max_x - self.min_x
         self.interior_height = self.max_y - self.min_y
 
-        self.exterior_width  = self.interior_width  + self.horizontal_pad * 2
-        self.exterior_height = self.interior_height + self.vertical_pad * 2
+        self.exterior_width  = self.interior_width  + self.left_pad + self.right_pad
+        self.exterior_height = self.interior_height + self.bottom_pad + self.top_pad
 
         plate = difference()(
                 square(size=[self.exterior_width, self.exterior_height ] ),
-                translate( [ self.horizontal_pad, self.vertical_pad, 0 ] )(
+                translate([self.left_pad, self.top_pad, 0])(
                     translate( [ -self.min_x, -self.min_y, 0 ] )(
                         key_hole_squares
                     )
@@ -419,7 +431,7 @@ class BoardBuilder:
 
         if self.show_points:
             point_collection = [ translate( [ p[0],p[1],1 ] )(circle(r=1, segments=20)) for p in key_space_points ]
-            plate = union()( plate, color("red")(translate( [ self.horizontal_pad + -self.min_x, self.vertical_pad + -self.min_y, 0 ] )(point_collection)))
+            plate = union()(plate, color("red")(translate([self.left_pad + -self.min_x, self.top_pad + -self.min_y, 0])(point_collection)))
 
         return translate( [ 0, self.exterior_height, 0 ] )(
                 mirror( [ 0, 1, 0 ] )(
@@ -432,11 +444,12 @@ class BoardBuilder:
         return square(size=[self.exterior_width, self.exterior_height ] )
 
     def build_mid_layers(self, plate):
-
+        #Get the shortest padding
+        shortest_padding = min(self.left_pad, self.right_pad, self.top_pad, self.bottom_pad)
         return difference()(
             plate,
-            translate( [ self.horizontal_pad, self.vertical_pad, 0 ] )(
-                square(size=[self.interior_width, self.interior_height ] )
+            translate([shortest_padding, shortest_padding, 0])(
+                square(size=[self.exterior_width - shortest_padding*2, self.exterior_height - shortest_padding*2] )
                 )
             )
 
@@ -458,8 +471,8 @@ if __name__ == "__main__":
     parser.add_argument('-j',  '--json',            type=str,   default='',  required=True, help="JSON file to load.  Raw data download from keyboard-layout-editor.com.")
     parser.add_argument('-o',  '--output_dir',      type=str,   default='.', help="Directory into which the resulting .scad files will be generated.")
     parser.add_argument('-s',  '--stabs',           choices=['both', 'cherry', 'costar'], default='both', help="Specify the style of stabilizers to generate.")
-    parser.add_argument('-hp', '--horizontal_pad',  type=float, default=0.0, help="Horizontal padding per side.")
-    parser.add_argument('-vp', '--vertical_pad',    type=float, default=0.0, help="Vertical padding per side.")
+    parser.add_argument('-hp', '--horizontal_pad',  type=str, default=0.0, help="Horizontal padding per side. Can also define left,right padding.")
+    parser.add_argument('-vp', '--vertical_pad',    type=float, default=0.0, help="Vertical padding per side. Can also define top,bottom padding.")
     parser.add_argument('-c',  '--corner_radius',   type=float, default=0.0, help="Corner radius.")
     parser.add_argument('-n',  '--num_holes',       type=int,   default=0,   help="Number of screw holes.")
     parser.add_argument('-hd', '--hole_diameter',   type=float, default=0.0, help="Screw hole diameter.")
