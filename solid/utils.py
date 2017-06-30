@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import os, sys, re
 
-from solid import *
+from . import *
 from math import *
 
 RIGHT, TOP, LEFT, BOTTOM = range(4)
