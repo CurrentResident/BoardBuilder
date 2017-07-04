@@ -124,22 +124,20 @@ class BoardBuilder:
 
         return difference()(
             plate,
-            union()(
-                build_corner(),
-                translate( [ self.exterior_width, 0, 0 ] )(
-                    mirror( [ 1, 0, 0 ] )(
-                        build_corner()
-                    )
-                ),
-                translate( [ self.exterior_width, self.exterior_height, 0 ] )(
-                    mirror( [ 1, 1, 0 ] )(
-                        build_corner()
-                    )
-                ),
-                translate( [ 0, self.exterior_height, 0 ] )(
-                    mirror( [ 0, 1, 0 ] )(
-                        build_corner()
-                    )
+            build_corner(),
+            translate( [ self.exterior_width, 0, 0 ] )(
+                mirror( [ 1, 0, 0 ] )(
+                    build_corner()
+                )
+            ),
+            translate( [ self.exterior_width, self.exterior_height, 0 ] )(
+                mirror( [ 1, 1, 0 ] )(
+                    build_corner()
+                )
+            ),
+            translate( [ 0, self.exterior_height, 0 ] )(
+                mirror( [ 0, 1, 0 ] )(
+                    build_corner()
                 )
             )
         )
@@ -196,15 +194,15 @@ class BoardBuilder:
         if self.num_holes > 3:
             return difference()(
                 plate,
-                union()(
-                    build_screw_hole_row(
-                        y                  = self.bottom_wall_thickness / 2,
-                        row_wall_thickness = self.bottom_wall_thickness,
-                        row_is_top         = False),
-                    build_screw_hole_row(
-                        y                  = self.exterior_height - self.top_wall_thickness / 2,
-                        row_wall_thickness = self.top_wall_thickness,
-                        row_is_top         = True)
+                build_screw_hole_row(
+                    y                  = self.bottom_wall_thickness / 2,
+                    row_wall_thickness = self.bottom_wall_thickness,
+                    row_is_top         = False
+                ),
+                build_screw_hole_row(
+                    y                  = self.exterior_height - self.top_wall_thickness / 2,
+                    row_wall_thickness = self.top_wall_thickness,
+                    row_is_top         = True
                 )
             )
         else:
@@ -226,30 +224,28 @@ class BoardBuilder:
             if self.stabs in ('both', 'cherry'):
                 s = union()(
                     translate( [ 0, -6.77, 0 ] )(
-                        union()(
-                            translate( [ -3.325, 0, 0 ] )(
-                                square(size=[6.65, 12.3 ] )
-                            ),
+                        translate( [ -3.325, 0, 0 ] )(
+                            square(size=[6.65, 12.3 ] )
+                        ),
 
-                            # Costar cutout.  Ideally, X should be -1.6, but to line up with the Cherry cutout,
-                            # it needs to be closer in by .05 mm.  Also, it needs to be "lower" than typical costar.
-                            # I think we can live with that.
-                            #
-                            # Here's how we get to -1.6 from center of cutout:
-                            #
-                            #        |--------A--------|     A == 23.8 mm per Cherry spec
-                            #         |-------B-------|      B == 20.6 mm per some internet people.
-                            #       +-+   +-------+   +-+
-                            #       | |   |       |   | |
-                            #       | |   |       |   | |
-                            #       | |   |       |   | |
-                            #       +-+   +-------+   +-+
+                        # Costar cutout.  Ideally, X should be -1.6, but to line up with the Cherry cutout,
+                        # it needs to be closer in by .05 mm.  Also, it needs to be "lower" than typical costar.
+                        # I think we can live with that.
+                        #
+                        # Here's how we get to -1.6 from center of cutout:
+                        #
+                        #        |--------A--------|     A == 23.8 mm per Cherry spec
+                        #         |-------B-------|      B == 20.6 mm per some internet people.
+                        #       +-+   +-------+   +-+
+                        #       | |   |       |   | |
+                        #       | |   |       |   | |
+                        #       | |   |       |   | |
+                        #       +-+   +-------+   +-+
 
-                            translate( [ -1.65, -1.2, 0 ] )(        # Bottom notch + Costar cutout.
-                                square(size=[3.3, 14 ] )
-                            ) if self.stabs == 'both' else translate( [-1.5, -1.2, 0] )(
-                                square(size=[3.0, 2 ])
-                            )
+                        translate( [ -1.65, -1.2, 0 ] )(        # Bottom notch + Costar cutout.
+                            square(size=[3.3, 14 ] )
+                        ) if self.stabs == 'both' else translate( [-1.5, -1.2, 0] )(
+                            square(size=[3.0, 2 ])
                         )
                     ),
                     translate( [ 0, -0.5, 0 ] )(
