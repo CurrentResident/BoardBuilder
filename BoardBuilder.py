@@ -70,8 +70,18 @@ class BoardBuilder:
             self.base_top_plate    = self.apply_screw_holes(self.base_top_plate)
             self.base_bottom_plate = self.apply_screw_holes(self.base_bottom_plate)
 
-        # Create any mid layers by subtracting the interior section out of the bottom plate.
-        self.mid_layers = self.build_mid_layers(self.base_bottom_plate)
+        # Create any mid layers by subtracting stuff from the bottom plate.
+        self.mid_layer_closed = self.build_mid_layers(self.base_bottom_plate)
+
+        # TODO: Option to generate an open mid-layer?  Consider:
+        #       1. Default opening placement (middle of the top, etc?)
+        #       2. Default size (USB recepticle sizes?)
+        #       3. Args to control the above.
+
+        # Create an optional material space-optimized representation of the mid-plate to give
+        # the user the option of tightly packing multiple mid layers on a single drawing, if
+        # they want to go to that level.
+        self.mid_layer_closed_sectioned = self.build_sectioned_mid_layer(self.mid_layer_closed)
 
     def update_mins_maxes(self, points):
         for point in points:
@@ -507,6 +517,62 @@ class BoardBuilder:
                     )
                 )
 
+    def build_sectioned_mid_layer(self, mid_layer):
+        if mid_layer:
+
+            half_height = self.exterior_height / 2
+            half_width  = self.exterior_width / 2
+
+            # Now generate an optional space-optimized drawing for the mid-layer.  This is meant as a cost-savings
+            # convenience for packing as many parts as possible onto a single drawing.  Because the resulting mid
+            # layer is sectioned, ideally it should only be used with materials that are unlikely to warp.
+            #
+            # We could go off the deep end with smartly slicing up the mid-layer for space.  Let's go with something
+            # just good enough for now until we really must to go deeper.
+            #
+            # Slice off the given quadrant, translated to center, with the plate corner in the lower-left.
+            def mid_layer_quadrant(horizontal_quadrant, vertical_quadrant):
+                horizontal_offset = horizontal_quadrant * half_width
+                vertical_offset   = vertical_quadrant   * half_height
+
+                # Slice off the given quadrant, then translate centered to origin.
+                section = translate([ -horizontal_offset - half_width/2, -vertical_offset - half_height/2, 0])(
+                        intersection()(
+                            mid_layer,
+                            translate([ horizontal_offset, vertical_offset, 0 ])(
+                                square(size=[ half_width, half_height ])
+                                )
+                            )
+                        )
+
+                if horizontal_quadrant:
+                    section = mirror([1, 0, 0])(section)
+
+                if vertical_quadrant:
+                    section = mirror([0, 1, 0])(section)
+
+                return section
+
+            mid_section_lower_left  = mid_layer_quadrant(0, 0)
+            mid_section_lower_right = mid_layer_quadrant(1, 0)
+            mid_section_upper_left  = mid_layer_quadrant(0, 1)
+            mid_section_upper_right = mid_layer_quadrant(1, 1)
+
+            space_optimized_mid_layer = union()(
+                    mid_section_lower_left,
+                    translate([ self.left_wall_thickness + 3, self.bottom_wall_thickness + 3 , 0])(
+                        mid_section_lower_right,
+                        translate([ self.right_wall_thickness + 3, self.bottom_wall_thickness + 3, 0])(
+                            mid_section_upper_left,
+                            translate([ self.left_wall_thickness + 3, self.top_wall_thickness + 3, 0])(
+                                mid_section_upper_right
+                            )
+                        )
+                    )
+            )
+
+            return space_optimized_mid_layer
+
     def render_top_plate(self, output_dir):
         scad_render_to_file(self.base_top_plate, os.path.join(output_dir, "top.scad"), include_orig_code=False)
 
@@ -514,8 +580,12 @@ class BoardBuilder:
         scad_render_to_file(self.base_bottom_plate, os.path.join(output_dir, "bottom.scad"), include_orig_code=False)
 
     def render_mid_layers(self, output_dir):
-        if self.mid_layers:
-            scad_render_to_file(self.mid_layers, os.path.join(output_dir, "mid_closed.scad"), include_orig_code=False)
+        if self.mid_layer_closed:
+            scad_render_to_file(self.mid_layer_closed, os.path.join(output_dir, "mid_closed.scad"), include_orig_code=False)
+
+        if self.mid_layer_closed_sectioned:
+            scad_render_to_file(self.mid_layer_closed_sectioned, os.path.join(output_dir, "mid_closed_sectioned.scad"), include_orig_code=False)
+
 
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
