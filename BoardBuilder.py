@@ -45,6 +45,14 @@ class BoardBuilder:
         except:
             self.top_pad = self.bottom_pad = float(vertical_pad)
 
+        # Calculate mid-layer wall thicknesses
+        # TODO: parameter to control.
+
+        self.left_wall_thickness   = min(10, self.left_pad)
+        self.right_wall_thickness  = min(10, self.right_pad)
+        self.top_wall_thickness    = min(10, self.top_pad)
+        self.bottom_wall_thickness = min(10, self.bottom_pad)
+
         # Build the bottom plate after the top one because the plate dimensions are calculated
         # while building the top plate.
         #
@@ -110,17 +118,42 @@ class BoardBuilder:
 
     def apply_screw_holes(self, plate):
 
-        edge_distance = min(self.left_pad / 2, self.right_pad / 2, self.bottom_pad / 2, self.top_pad / 2)
-
-        def build_screw_hole_row(y):
+        def build_screw_hole_row(y, row_wall_thickness, row_is_top):
 
             num_holes_in_row = self.num_holes / 2
             holes = []
 
-            x = edge_distance
-            step_x  = (self.exterior_width - 2 * edge_distance) / (num_holes_in_row - 1)
+            # Adjust the corner holes' so that their horizontal positions are dominated by the
+            # thickest wall.
+            start_x          = max(self.left_wall_thickness,  row_wall_thickness) / 2
+            end_x_adjustment = max(self.right_wall_thickness, row_wall_thickness) / 2
+            end_x            = self.exterior_width - end_x_adjustment
+            step_x           = (end_x - start_x) / (num_holes_in_row - 1)
 
-            for h in range(num_holes_in_row):
+            # Also adjust the corner holes' vertical positions similarly.
+            # TODO: Do something better than passing in a boolean to determine adjustment direction.
+            start_y_adjustment = start_x          if self.left_wall_thickness  > row_wall_thickness else 0
+            end_y_adjustment   = end_x_adjustment if self.right_wall_thickness > row_wall_thickness else 0
+
+            if row_is_top:
+                start_y_adjustment = -start_y_adjustment
+                end_y_adjustment   = -end_y_adjustment
+
+            # Manually add the adjusted start and end holes.
+            holes.append(
+                    translate([ start_x, y + start_y_adjustment, 0 ])(
+                        circle(r = self.hole_diameter / 2, segments=20)
+                    )
+            )
+            holes.append(
+                    translate([ end_x,   y + end_y_adjustment, 0 ])(
+                        circle(r = self.hole_diameter / 2, segments=20)
+                    )
+            )
+
+            # Now add all the others in between.
+            x = start_x + step_x
+            for h in range(num_holes_in_row - 2):
                 holes.append(
                     translate( [  x, y, 0 ] )(
                         circle(r = self.hole_diameter / 2, segments=20)
@@ -131,13 +164,23 @@ class BoardBuilder:
 
             return holes
 
-        return difference()(
-            plate,
-            union()(
-                build_screw_hole_row(y = edge_distance),
-                build_screw_hole_row(y = self.exterior_height - edge_distance)
+        # The caller already validated this, but let's check again just for maintenance insurance.
+        if self.num_holes > 3:
+            return difference()(
+                plate,
+                union()(
+                    build_screw_hole_row(
+                        y                  = self.bottom_wall_thickness / 2,
+                        row_wall_thickness = self.bottom_wall_thickness,
+                        row_is_top         = False),
+                    build_screw_hole_row(
+                        y                  = self.exterior_height - self.top_wall_thickness / 2,
+                        row_wall_thickness = self.top_wall_thickness,
+                        row_is_top         = True)
+                )
             )
-        )
+        else:
+            return plate
 
     def switch_hole(self, width_factor, height_factor):
 
@@ -442,14 +485,27 @@ class BoardBuilder:
         return square(size=[self.exterior_width, self.exterior_height ] )
 
     def build_mid_layers(self, plate):
-        #Get the shortest padding
-        shortest_padding = min(self.left_pad, self.right_pad, self.top_pad, self.bottom_pad)
-        return difference()(
-            plate,
-            translate([shortest_padding, shortest_padding, 0])(
-                square(size=[self.exterior_width - shortest_padding*2, self.exterior_height - shortest_padding*2] )
+
+        # Interior rectangle is the rectangular bounding box of the all key holes.
+        # For a conventional keyboard, this guarantees enough space for the switches.
+        interior_rectangle = square(size=[ self.interior_width, self.interior_height ])
+
+        padding_rectangle = square(
+                size=[
+                    self.exterior_width  - (self.left_wall_thickness + self.right_wall_thickness),
+                    self.exterior_height - (self.top_wall_thickness  + self.bottom_wall_thickness)
+                    ]
                 )
-            )
+
+        return difference()(
+                plate,
+                translate([ self.left_pad, self.bottom_pad, 0])(
+                    interior_rectangle
+                    ),
+                translate([ self.left_wall_thickness, self.bottom_wall_thickness, 0])(
+                    padding_rectangle
+                    )
+                )
 
     def render_top_plate(self, output_dir):
         scad_render_to_file(self.base_top_plate, os.path.join(output_dir, "top.scad"), include_orig_code=False)
