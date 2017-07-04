@@ -10,7 +10,7 @@ from solid import *
 from solid.utils import *
 
 class BoardBuilder:
-    def __init__(self, kle_json, horizontal_pad, vertical_pad, corner_radius, num_holes, hole_diameter, show_points, stabs, max_wall):
+    def __init__(self, kle_json, horizontal_pad=0.0, vertical_pad=0.0, corner_radius=0.0, num_holes=0, hole_diameter=0.0, show_points=False, stabs='both', max_wall=10.0):
 
         f = open(kle_json)
         self.layout = json.load(f)
