@@ -1,4 +1,6 @@
 *.dxf
+*.orig
 *.pyc
+*.scad
 *.swp
 *.swo

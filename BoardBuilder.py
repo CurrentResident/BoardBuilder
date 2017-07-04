@@ -29,23 +29,21 @@ class BoardBuilder:
         self.num_holes = num_holes
         self.hole_diameter = hole_diameter
 
-        #Determine the left and right padding
-        self.horizontal_pad = horizontal_pad
+        # Determine the left and right padding
         try:
             left_padding, right_padding = horizontal_pad.split(',')
-            self.left_pad = int(left_padding)
-            self.right_pad = int(right_padding)
+            self.left_pad  = float(left_padding)
+            self.right_pad = float(right_padding)
         except:
-            self.left_pad = self.right_pad = int(horizontal_pad)
+            self.left_pad = self.right_pad = float(horizontal_pad)
 
-        # Determine the left and right padding
-        self.vertical_pad = vertical_pad
+        # Determine the top and bottom padding
         try:
             top_padding, bottom_padding = vertical_pad.split(',')
-            self.top_pad = int(top_padding)
-            self.bottom_pad = int(bottom_padding)
+            self.top_pad    = float(top_padding)
+            self.bottom_pad = float(bottom_padding)
         except:
-            self.top_pad = self.bottom_pad = int(vertical_pad)
+            self.top_pad = self.bottom_pad = float(vertical_pad)
 
         # Build the bottom plate after the top one because the plate dimensions are calculated
         # while building the top plate.
@@ -471,8 +469,8 @@ if __name__ == "__main__":
     parser.add_argument('-j',  '--json',            type=str,   default='',  required=True, help="JSON file to load.  Raw data download from keyboard-layout-editor.com.")
     parser.add_argument('-o',  '--output_dir',      type=str,   default='.', help="Directory into which the resulting .scad files will be generated.")
     parser.add_argument('-s',  '--stabs',           choices=['both', 'cherry', 'costar'], default='both', help="Specify the style of stabilizers to generate.")
-    parser.add_argument('-hp', '--horizontal_pad',  type=str, default='0', help="Horizontal padding per side. Can also define left,right padding.")
-    parser.add_argument('-vp', '--vertical_pad',    type=str, default='0', help="Vertical padding per side. Can also define top,bottom padding.")
+    parser.add_argument('-hp', '--horizontal_pad',  type=str,   default='0', help="Horizontal padding per side. Can also define left,right padding.")
+    parser.add_argument('-vp', '--vertical_pad',    type=str,   default='0', help="Vertical padding per side. Can also define top,bottom padding.")
     parser.add_argument('-c',  '--corner_radius',   type=float, default=0.0, help="Corner radius.")
     parser.add_argument('-n',  '--num_holes',       type=int,   default=0,   help="Number of screw holes.")
     parser.add_argument('-hd', '--hole_diameter',   type=float, default=0.0, help="Screw hole diameter.")
