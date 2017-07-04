@@ -10,7 +10,7 @@ from solid import *
 from solid.utils import *
 
 class BoardBuilder:
-    def __init__(self, kle_json, horizontal_pad, vertical_pad, corner_radius, num_holes, hole_diameter, show_points, stabs):
+    def __init__(self, kle_json, horizontal_pad, vertical_pad, corner_radius, num_holes, hole_diameter, show_points, stabs, max_wall):
 
         f = open(kle_json)
         self.layout = json.load(f)
@@ -46,12 +46,30 @@ class BoardBuilder:
             self.top_pad = self.bottom_pad = float(vertical_pad)
 
         # Calculate mid-layer wall thicknesses
-        # TODO: parameter to control.
+        max_wall_thickness = 10.0
+        try:
+            max_wall_thickness = float(max_wall)
+        except:
 
-        self.left_wall_thickness   = min(10, self.left_pad)
-        self.right_wall_thickness  = min(10, self.right_pad)
-        self.top_wall_thickness    = min(10, self.top_pad)
-        self.bottom_wall_thickness = min(10, self.bottom_pad)
+            pads  = [ self.left_pad, self.right_pad, self.top_pad, self.bottom_pad ]
+            walls = filter(lambda x: x > 0.0, pads)
+
+            if max_wall == 'min_pad':
+                max_wall_thickness = min(walls)
+
+            elif max_wall == 'max_pad':
+                max_wall_thickness = max(walls)
+
+            else:
+                print "WARNING: Unknown value for max_wall parameter: {0}. Defaulting to {1}".format(
+                        max_wall,
+                        max_wall_thickness
+                )
+
+        self.left_wall_thickness   = min(max_wall_thickness, self.left_pad)
+        self.right_wall_thickness  = min(max_wall_thickness, self.right_pad)
+        self.top_wall_thickness    = min(max_wall_thickness, self.top_pad)
+        self.bottom_wall_thickness = min(max_wall_thickness, self.bottom_pad)
 
         # Build the bottom plate after the top one because the plate dimensions are calculated
         # while building the top plate.
@@ -590,17 +608,21 @@ class BoardBuilder:
 #------------------------------------------------------------------------------
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+            description     = 'Generate OpenSCAD drawings from a keyboard-layout-editor JSON file.',
+            formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    )
 
-    parser.add_argument('-j',  '--json',            type=str,   default='',  required=True, help="JSON file to load.  Raw data download from keyboard-layout-editor.com.")
-    parser.add_argument('-o',  '--output_dir',      type=str,   default='.', help="Directory into which the resulting .scad files will be generated.")
+    parser.add_argument('-j',  '--json',            type=str,   default='',     required=True, help="JSON file to load.  Raw data download from keyboard-layout-editor.com.")
+    parser.add_argument('-o',  '--output_dir',      type=str,   default='.',    help="Directory into which the resulting .scad files will be generated.")
     parser.add_argument('-s',  '--stabs',           choices=['both', 'cherry', 'costar'], default='both', help="Specify the style of stabilizers to generate.")
-    parser.add_argument('-hp', '--horizontal_pad',  type=str,   default='0', help="Horizontal padding per side. Can also define left,right padding.")
-    parser.add_argument('-vp', '--vertical_pad',    type=str,   default='0', help="Vertical padding per side. Can also define top,bottom padding.")
-    parser.add_argument('-c',  '--corner_radius',   type=float, default=0.0, help="Corner radius.")
-    parser.add_argument('-n',  '--num_holes',       type=int,   default=0,   help="Number of screw holes.")
-    parser.add_argument('-hd', '--hole_diameter',   type=float, default=0.0, help="Screw hole diameter.")
-    parser.add_argument('-sp', '--show_points',     action="store_true",     help="Debug aid.  Add floating red points for key space rectangles.")
+    parser.add_argument('-hp', '--horizontal_pad',  type=str,   default='0.0',  help="Horizontal padding per side. Can also define left,right padding.")
+    parser.add_argument('-vp', '--vertical_pad',    type=str,   default='0.0',  help="Vertical padding per side. Can also define top,bottom padding.")
+    parser.add_argument('-mw', '--max_wall',        type=str,   default='10.0', help="Max mid-layer wall thickness. Can also be 'min_pad' or 'max_pad'")
+    parser.add_argument('-c',  '--corner_radius',   type=float, default=0.0,    help="Corner radius.")
+    parser.add_argument('-n',  '--num_holes',       type=int,   default=0,      help="Number of screw holes.")
+    parser.add_argument('-hd', '--hole_diameter',   type=float, default=0.0,    help="Screw hole diameter.")
+    parser.add_argument('-sp', '--show_points',     action="store_true",        help="Debug aid.  Add floating red points for key space rectangles.")
     
     args = parser.parse_args()
 
@@ -611,7 +633,8 @@ if __name__ == "__main__":
                          args.num_holes,
                          args.hole_diameter,
                          args.show_points,
-                         args.stabs)
+                         args.stabs,
+                         args.max_wall)
 
     board.render_top_plate(args.output_dir)
     board.render_bottom_plate(args.output_dir)
