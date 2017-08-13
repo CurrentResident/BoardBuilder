@@ -624,7 +624,7 @@ if __name__ == "__main__":
     parser.add_argument('-n',  '--num_holes',       type=int,   default=0,      help="Number of screw holes.")
     parser.add_argument('-hd', '--hole_diameter',   type=float, default=0.0,    help="Screw hole diameter.")
     parser.add_argument('-sp', '--show_points',     action="store_true",        help="Debug aid.  Add floating red points for key space rectangles.")
-    parser.add_argument('-hsc', '--hole_side_count', type=int, default=20, help="How many sides to put on the screw holes. 20 is good for circles, 6 would be hex.")
+    parser.add_argument('-hsc', '--hole_side_count', type=int, default=20,      help="How many sides to put on the screw holes. 20 is good for circles, 6 would be hex.")
     
     args = parser.parse_args()
 
@@ -637,7 +637,7 @@ if __name__ == "__main__":
                          args.show_points,
                          args.stabs,
                          args.max_wall,
-                         args.screw_side_count,)
+                         args.hole_side_count,)
 
     board.render_top_plate(args.output_dir)
     board.render_bottom_plate(args.output_dir)
