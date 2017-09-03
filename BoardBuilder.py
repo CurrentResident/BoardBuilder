@@ -161,6 +161,9 @@ class BoardBuilder:
             end_x            = self.exterior_width - end_x_adjustment
             step_x           = (end_x - start_x) / (num_holes_in_row - 1)
 
+            # Get the hole radius
+            hole_radius = hole_diameter / 2.
+
             # Also adjust the corner holes' vertical positions similarly.
             # TODO: Do something better than passing in a boolean to determine adjustment direction.
             start_y_adjustment = start_x          if self.left_wall_thickness  > row_wall_thickness else 0
@@ -173,12 +176,12 @@ class BoardBuilder:
             # Manually add the adjusted start and end holes.
             holes.append(
                     translate([ start_x, y + start_y_adjustment, 0 ])(
-                        circle(r = self.hole_diameter / 2, segments=self.hole_side_count)
+                        circle(r = hole_radius, segments=self.hole_side_count)
                     )
             )
             holes.append(
                     translate([ end_x,   y + end_y_adjustment, 0 ])(
-                        circle(r = self.hole_diameter / 2, segments=self.hole_side_count)
+                        circle(r = hole_radius, segments=self.hole_side_count)
                     )
             )
 
@@ -187,7 +190,7 @@ class BoardBuilder:
             for h in range(num_holes_in_row - 2):
                 holes.append(
                     translate( [  x, y, 0 ] )(
-                        circle(r = self.hole_diameter / 2, segments=self.hole_side_count)
+                        circle(r = hole_radius, segments=self.hole_side_count)
                     )
                 )
 
