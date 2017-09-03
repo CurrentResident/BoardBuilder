@@ -10,7 +10,7 @@ from solid import *
 from solid.utils import *
 
 class BoardBuilder:
-    def __init__(self, kle_json, horizontal_pad=0.0, vertical_pad=0.0, corner_radius=0.0, num_holes=0, hole_diameter=0.0, show_points=False, stabs='both', max_wall=10.0):
+    def __init__(self, kle_json, horizontal_pad=0.0, vertical_pad=0.0, corner_radius=0.0, num_holes=0, hole_diameter=0.0, show_points=False, stabs='both', max_wall=10.0, hole_side_count=-1):
 
         f = open(kle_json)
         self.layout = json.load(f)
@@ -44,6 +44,11 @@ class BoardBuilder:
             self.bottom_pad = float(bottom_padding)
         except:
             self.top_pad = self.bottom_pad = float(vertical_pad)
+
+        #Determine the number of sides to use for the screw holes
+        if hole_side_count < 3:
+            hole_side_count = 20
+        self.hole_side_count = hole_side_count
 
         # Calculate mid-layer wall thicknesses
         max_wall_thickness = 10.0
@@ -171,12 +176,12 @@ class BoardBuilder:
             # Manually add the adjusted start and end holes.
             holes.append(
                     translate([ start_x, y + start_y_adjustment, 0 ])(
-                        circle(r = hole_radius, segments=20)
+                        circle(r = hole_radius, segments=self.hole_side_count)
                     )
             )
             holes.append(
                     translate([ end_x,   y + end_y_adjustment, 0 ])(
-                        circle(r = hole_radius, segments=20)
+                        circle(r = hole_radius, segments=self.hole_side_count)
                     )
             )
 
@@ -185,7 +190,7 @@ class BoardBuilder:
             for h in range(num_holes_in_row - 2):
                 holes.append(
                     translate( [  x, y, 0 ] )(
-                        circle(r = hole_radius, segments=20)
+                        circle(r = hole_radius, segments=self.hole_side_count)
                     )
                 )
 
@@ -622,6 +627,7 @@ if __name__ == "__main__":
     parser.add_argument('-n',  '--num_holes',       type=int,   default=0,      help="Number of screw holes.")
     parser.add_argument('-hd', '--hole_diameter',   type=float, default=0.0,    help="Screw hole diameter.")
     parser.add_argument('-sp', '--show_points',     action="store_true",        help="Debug aid.  Add floating red points for key space rectangles.")
+    parser.add_argument('-hsc', '--hole_side_count', type=int, default=20,      help="How many sides to put on the screw holes. 20 is good for circles, 6 would be hex.")
     
     args = parser.parse_args()
 
@@ -633,7 +639,8 @@ if __name__ == "__main__":
                          args.hole_diameter,
                          args.show_points,
                          args.stabs,
-                         args.max_wall)
+                         args.max_wall,
+                         args.hole_side_count,)
 
     board.render_top_plate(args.output_dir)
     board.render_bottom_plate(args.output_dir)
