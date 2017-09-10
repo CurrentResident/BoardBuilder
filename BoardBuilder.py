@@ -493,12 +493,23 @@ class BoardBuilder:
         self.exterior_width  = self.interior_width  + self.left_pad + self.right_pad
         self.exterior_height = self.interior_height + self.bottom_pad + self.top_pad
 
+        # Rotated holes and/or wacky layouts can offset everything, so undo the offset.  The end result is that the
+        # left-most and bottom-most key space points will align to the axes.
+        aligned_holes = translate( [ -self.min_x, -self.min_y, 0 ] )(
+                key_hole_squares
+        )
+
+        # Save off the unpadded holes as a member, so that we can generate a separate drawing just for the holes, in
+        # case the user has an entirely custom plate design and just wants us to hand them the holes.
+        # Flip because the holes were given upside down.
+        self.holes = mirror( [ 0, 1, 0 ])(
+                aligned_holes
+        )
+
         plate = difference()(
                 square(size=[self.exterior_width, self.exterior_height ] ),
                 translate([self.left_pad, self.top_pad, 0])(
-                    translate( [ -self.min_x, -self.min_y, 0 ] )(
-                        key_hole_squares
-                    )
+                    aligned_holes
                 )
             )
 
