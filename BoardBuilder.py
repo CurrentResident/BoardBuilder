@@ -493,37 +493,46 @@ class BoardBuilder:
         self.exterior_width  = self.interior_width  + self.left_pad + self.right_pad
         self.exterior_height = self.interior_height + self.bottom_pad + self.top_pad
 
-        # Rotated holes and/or wacky layouts can offset everything, so undo the offset.  The end result is that the
-        # left-most and bottom-most key space points will align to the axes.
-        aligned_holes = translate( [ -self.min_x, -self.min_y, 0 ] )(
+        # The KLE format assumes origin at upper-left, whereas OpenSCAD is origin at lower-left.  The resulting geometry
+        # thus needs to be flipped.  Define a function to do that, as well as justify the geometry so that even with
+        # rotated holes, keyspaces are justified onto the x and y axes.
+        def transform_from_kle_geometry(geometry):
+            return translate( [ 0, self.interior_height, 0 ] )(
+                mirror( [ 0, 1, 0 ])(
+                    translate( [ -self.min_x, -self.min_y, 0 ] )(
+                        geometry
+                    )
+                )
+            )
+
+        # Save off the justified keyholes as a member to be rendered as a separate drawing, convenient for subtraction
+        # from a custom plate designed elsewhere.
+        self.holes = transform_from_kle_geometry(
                 key_hole_squares
         )
 
-        # Save off the unpadded holes as a member, so that we can generate a separate drawing just for the holes, in
-        # case the user has an entirely custom plate design and just wants us to hand them the holes.
-        # Flip because the holes were given upside down.
-        self.holes = translate( [ 0, self.exterior_height, 0 ] )(
-                mirror( [ 0, 1, 0 ])(
-                    aligned_holes
-                )
-        )
-
+        # Take the padding into account when actually making the top plate itself.
         plate = difference()(
                 square(size=[self.exterior_width, self.exterior_height ] ),
-                translate([self.left_pad, self.top_pad, 0])(
-                    aligned_holes
+                translate([self.left_pad, self.bottom_pad, 0])(
+                    self.holes
                 )
             )
 
         if self.show_points:
             point_collection = [ translate( [ p[0],p[1],1 ] )(circle(r=1, segments=20)) for p in key_space_points ]
-            plate = union()(plate, color("red")(translate([self.left_pad + -self.min_x, self.top_pad + -self.min_y, 0])(point_collection)))
-
-        return translate( [ 0, self.exterior_height, 0 ] )(
-                mirror( [ 0, 1, 0 ] )(
-                    plate
-                )
+            plate = union()(
+                    plate,
+                    color("red")(
+                        translate([self.left_pad, self.bottom_pad, 0])(
+                            transform_from_kle_geometry(
+                                point_collection
+                            )
+                        )
+                    )
             )
+
+        return plate
 
     def build_base_bottom_plate(self):
 
