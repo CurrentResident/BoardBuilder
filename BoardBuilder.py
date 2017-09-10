@@ -502,8 +502,10 @@ class BoardBuilder:
         # Save off the unpadded holes as a member, so that we can generate a separate drawing just for the holes, in
         # case the user has an entirely custom plate design and just wants us to hand them the holes.
         # Flip because the holes were given upside down.
-        self.holes = mirror( [ 0, 1, 0 ])(
-                aligned_holes
+        self.holes = translate( [ 0, self.exterior_height, 0 ] )(
+                mirror( [ 0, 1, 0 ])(
+                    aligned_holes
+                )
         )
 
         plate = difference()(
@@ -607,7 +609,8 @@ class BoardBuilder:
             return space_optimized_mid_layer
 
     def render_top_plate(self, output_dir):
-        scad_render_to_file(self.base_top_plate, os.path.join(output_dir, "top.scad"), include_orig_code=False)
+        scad_render_to_file(self.base_top_plate, os.path.join(output_dir, "top.scad"),   include_orig_code=False)
+        scad_render_to_file(self.holes,          os.path.join(output_dir, "holes.scad"), include_orig_code=False)
 
     def render_bottom_plate(self, output_dir):
         scad_render_to_file(self.base_bottom_plate, os.path.join(output_dir, "bottom.scad"), include_orig_code=False)
