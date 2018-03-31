@@ -162,7 +162,7 @@ class BoardBuilder:
             step_x           = (end_x - start_x) / (num_holes_in_row - 1)
 
             # Get the hole radius
-            hole_radius = hole_diameter / 2.
+            hole_radius = self.hole_diameter / 2.
 
             # Also adjust the corner holes' vertical positions similarly.
             # TODO: Do something better than passing in a boolean to determine adjustment direction.
