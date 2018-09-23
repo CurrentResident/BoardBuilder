@@ -229,13 +229,37 @@ class BoardBuilder:
             # One real nice thing about CSG is that you can just "follow the lines" on a spec drawing
             # with ordinary translations.
             #
-            if self.stabs in ('both', 'cherry'):
-                s = union()(
+            def cherry_stab():
+                # Cut out the main rectangle of the Cherry stab frame.  From its center:
+                return union()(
                     translate( [ 0, -6.77, 0 ] )(
                         translate( [ -3.325, 0, 0 ] )(
                             square(size=[6.65, 12.3 ] )
                         ),
+                        translate( [-1.5, -1.2, 0] )(
+                            square(size=[3.0, 2 ])
+                        ),
+                    )
+                    # Cherry side notch.
+                    translate( [ 0, -0.5, 0 ] )(
+                        square(size=[4.2, 2.8 ] )
+                    )
+                )
 
+            def costar_stab():
+                return translate( [ -1.6, -7.75, 0 ] )(
+                    square(size=[3.3, 14])
+                )
+
+            if self.stabs == 'cherry':
+                return cherry_stab()
+            elif self.stabs == 'costar':
+                return costar_stab()
+            elif self.stabs == 'both':
+                return union()(
+                    cherry_stab(),
+                    costar_stab()
+                )
                         # Costar cutout.  Ideally, X should be -1.6, but to line up with the Cherry cutout,
                         # it needs to be closer in by .05 mm.  Also, it needs to be "lower" than typical costar.
                         # I think we can live with that.
@@ -250,24 +274,17 @@ class BoardBuilder:
                         #       | |   |       |   | |
                         #       +-+   +-------+   +-+
 
-                        translate( [ -1.65, -1.2, 0 ] )(        # Bottom notch + Costar cutout.
-                            square(size=[3.3, 14 ] )
-                        ) if self.stabs == 'both' else translate( [-1.5, -1.2, 0] )(
-                            square(size=[3.0, 2 ])
-                        )
-                    ),
-                    translate( [ 0, -0.5, 0 ] )(
-                        square(size=[4.2, 2.8 ] )
-                    )
-                )
-
-            elif self.stabs == 'costar':
-
-                s = translate( [ -1.6, -7.75, 0 ] )(
-                    square(size=[3.3, 14])
-                    )
-
-            return s
+#                        translate( [ -1.65, -1.2, 0 ] )(        # Bottom notch + Costar cutout.
+#                            square(size=[3.3, 14 ] )
+#                        ) if self.stabs == 'both' else 
+#                    ),
+#                    )
+#                )
+#
+#            elif self.stabs == 'costar':
+#
+#
+#            return s
 
         def build_stab(a, left=None, right=None):
 
