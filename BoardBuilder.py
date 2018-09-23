@@ -239,16 +239,18 @@ class BoardBuilder:
                         translate( [-1.5, -1.2, 0] )(
                             square(size=[3.0, 2 ])
                         ),
-                    )
+                    ),
                     # Cherry side notch.
                     translate( [ 0, -0.5, 0 ] )(
                         square(size=[4.2, 2.8 ] )
                     )
                 )
 
-            def costar_stab():
-                return translate( [ -1.6, -7.75, 0 ] )(
-                    square(size=[3.3, 14])
+            # The vertical fudge is so that we can align/stretch the stab to sit nicely in a combined stab
+            # with Cherry.
+            def costar_stab(vertical_fudge=0, height_fudge=0):
+                return translate( [ 0, -0.75+vertical_fudge, 0 ] )(
+                    square(size=[3.3, 14+height_fudge], center=True)
                 )
 
             if self.stabs == 'cherry':
@@ -258,7 +260,7 @@ class BoardBuilder:
             elif self.stabs == 'both':
                 return union()(
                     cherry_stab(),
-                    costar_stab()
+                    costar_stab(vertical_fudge=-0.22)
                 )
                         # Costar cutout.  Ideally, X should be -1.6, but to line up with the Cherry cutout,
                         # it needs to be closer in by .05 mm.  Also, it needs to be "lower" than typical costar.
