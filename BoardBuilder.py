@@ -246,8 +246,7 @@ class BoardBuilder:
                     )
                 )
 
-            # The vertical fudge is so that we can align/stretch the stab to sit nicely in a combined stab
-            # with Cherry.
+            # Fudging parameters allow for us to tweak the costar cutout when combined with cherry.
             def costar_stab(height_fudge=0, bottom_fudge=0):
                 return translate( [ -1.65, -7.75+bottom_fudge, 0 ] )(
                     square(size=[3.3, 14+height_fudge])
@@ -262,31 +261,6 @@ class BoardBuilder:
                     cherry_stab(),
                     costar_stab(bottom_fudge=-0.22)
                 )
-                        # Costar cutout.  Ideally, X should be -1.6, but to line up with the Cherry cutout,
-                        # it needs to be closer in by .05 mm.  Also, it needs to be "lower" than typical costar.
-                        # I think we can live with that.
-                        #
-                        # Here's how we get to -1.6 from center of cutout:
-                        #
-                        #        |--------A--------|     A == 23.8 mm per Cherry spec
-                        #         |-------B-------|      B == 20.6 mm per some internet people.
-                        #       +-+   +-------+   +-+
-                        #       | |   |       |   | |
-                        #       | |   |       |   | |
-                        #       | |   |       |   | |
-                        #       +-+   +-------+   +-+
-
-#                        translate( [ -1.65, -1.2, 0 ] )(        # Bottom notch + Costar cutout.
-#                            square(size=[3.3, 14 ] )
-#                        ) if self.stabs == 'both' else 
-#                    ),
-#                    )
-#                )
-#
-#            elif self.stabs == 'costar':
-#
-#
-#            return s
 
         def build_stab(a, left=None, right=None):
 
