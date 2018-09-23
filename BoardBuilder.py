@@ -216,7 +216,7 @@ class BoardBuilder:
         else:
             return plate
 
-    def switch_hole(self, width_factor, height_factor):
+    def switch_hole(self, width_factor, height_factor, stab_style):
 
         def stab_geometry():
 
@@ -252,11 +252,11 @@ class BoardBuilder:
                     square(size=[3.3, 14+height_fudge])
                 )
 
-            if self.stabs == 'cherry':
+            if stab_style == 'cherry':
                 return cherry_stab()
-            elif self.stabs == 'costar':
+            elif stab_style == 'costar':
                 return costar_stab()
-            elif self.stabs == 'both':
+            elif stab_style == 'both':
                 return union()(
                     cherry_stab(),
                     costar_stab(bottom_fudge=-0.22)
@@ -277,7 +277,7 @@ class BoardBuilder:
                 translate( [ -left, 0, 0 ] )(mirror( [ 1, 0, 0 ] )(combined_stab))
                 )
 
-            if self.stabs in ('both', 'cherry'):
+            if stab_style in ('both', 'cherry'):
                 stab = union()(
                     stab,
                     translate( [ (right - left) / 2, 0, 0 ] )(
@@ -366,6 +366,7 @@ class BoardBuilder:
             next_key_width_factor  = 1.0
             next_key_height_factor = 1.0
             skip_next = False
+            next_stab = self.stabs
 
             if type(row) == list:
                 for e in row:
@@ -393,6 +394,9 @@ class BoardBuilder:
                             cursor_y = cursor_y + (standard_key_spacing * e['y' ] )
                         if 'd' in e:                # Next "key" is really a decal.  Skip it.
                             skip_next = True
+                        if 's' in e:                                        # BoardBuilder-specific wrinkle: force stabilizer style.
+                            if e['s'] in ('costar', 'both', 'cherry'):
+                                next_stab = e['s']
 
                     elif skip_next:
                         skip_next = False
@@ -445,7 +449,7 @@ class BoardBuilder:
                                     rotate( [ 0, 0, r ] )(
                                         translate( [ -rx, -ry, 0 ] )(
                                             translate( [ cursor_x + space_relative_x_center, cursor_y + space_relative_y_center, 0 ] )(
-                                                self.switch_hole(next_key_width_factor, next_key_height_factor)
+                                                self.switch_hole(next_key_width_factor, next_key_height_factor, next_stab)
                                             )
                                         )
                                     )
@@ -468,7 +472,7 @@ class BoardBuilder:
 
                             key_hole_squares.append(
                                     translate( [ cursor_x + space_relative_x_center, cursor_y + space_relative_y_center, 0 ] )(
-                                        self.switch_hole(next_key_width_factor, next_key_height_factor)
+                                        self.switch_hole(next_key_width_factor, next_key_height_factor, next_stab)
                                     )
                             )
 
@@ -476,6 +480,7 @@ class BoardBuilder:
 
                         next_key_width_factor  = 1.0
                         next_key_height_factor = 1.0
+                        next_stab              = self.stabs
 
                 # In KLE, the per-row Y increment seems to be a constant 1u, unlike the X increment, which is the key's entire width
                 cursor_y = cursor_y + height_increment
