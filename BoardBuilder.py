@@ -252,14 +252,26 @@ class BoardBuilder:
                     square(size=[3.3, 14+height_fudge])
                 )
 
-            if stab_style == 'cherry':
+            bottom_fudge = stab_style['bottom_fudge'] if 'bottom_fudge' in stab_style else 0.0
+            height_fudge = stab_style['height_fudge'] if 'height_fudge' in stab_style else 0.0
+
+            if stab_style['type'] == 'cherry':
                 return cherry_stab()
-            elif stab_style == 'costar':
-                return costar_stab()
-            elif stab_style == 'both':
+
+            elif stab_style['type'] == 'costar':
+
+                return costar_stab(bottom_fudge = bottom_fudge,
+                                   height_fudge = height_fudge)
+
+            elif stab_style['type'] == 'both':
+
+                bottom_fudge += -0.22            # This lowers the costar cutout to align with the bottom cherry notch.
+                height_fudge +=  0.0
+
                 return union()(
                     cherry_stab(),
-                    costar_stab(bottom_fudge=-0.22)
+                    costar_stab(bottom_fudge = bottom_fudge,
+                                height_fudge = height_fudge)
                 )
 
         def build_stab(a, left=None, right=None):
@@ -277,7 +289,7 @@ class BoardBuilder:
                 translate( [ -left, 0, 0 ] )(mirror( [ 1, 0, 0 ] )(combined_stab))
                 )
 
-            if stab_style in ('both', 'cherry'):
+            if stab_style['type'] in ('both', 'cherry'):
                 stab = union()(
                     stab,
                     translate( [ (right - left) / 2, 0, 0 ] )(
@@ -366,7 +378,7 @@ class BoardBuilder:
             next_key_width_factor  = 1.0
             next_key_height_factor = 1.0
             skip_next = False
-            next_stab = self.stabs
+            next_stab = { 'type' : self.stabs }
 
             if type(row) == list:
                 for e in row:
@@ -394,9 +406,8 @@ class BoardBuilder:
                             cursor_y = cursor_y + (standard_key_spacing * e['y' ] )
                         if 'd' in e:                # Next "key" is really a decal.  Skip it.
                             skip_next = True
-                        if 's' in e:                                        # BoardBuilder-specific wrinkle: force stabilizer style.
-                            if e['s'] in ('costar', 'both', 'cherry'):
-                                next_stab = e['s']
+                        if 'bb_stab' in e:                                        # BoardBuilder-specific wrinkle: force stabilizer style.
+                            next_stab = e['bb_stab']
 
                     elif skip_next:
                         skip_next = False
@@ -480,7 +491,7 @@ class BoardBuilder:
 
                         next_key_width_factor  = 1.0
                         next_key_height_factor = 1.0
-                        next_stab              = self.stabs
+                        next_stab              = { 'type' : self.stabs }
 
                 # In KLE, the per-row Y increment seems to be a constant 1u, unlike the X increment, which is the key's entire width
                 cursor_y = cursor_y + height_increment
