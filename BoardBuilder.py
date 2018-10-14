@@ -252,16 +252,29 @@ class BoardBuilder:
                     square(size=[3.3, 14+height_fudge])
                 )
 
-            bottom_fudge = stab_style['bottom_fudge'] if 'bottom_fudge' in stab_style else 0.0
-            height_fudge = stab_style['height_fudge'] if 'height_fudge' in stab_style else 0.0
+            def costar_wide_stab(height_fudge=0, bottom_fudge=0):
+                return translate( [ -1.7, -7.75+bottom_fudge, 0 ] )(
+                    square(size=[3.4, 14+height_fudge])
+                )
+
+            bottom_fudge = stab_style['bottom_fudge'] if 'bottom_fudge' in stab_style else 0
+            height_fudge = stab_style['height_fudge'] if 'height_fudge' in stab_style else 0
 
             if stab_style['type'] == 'cherry':
-                return cherry_stab()
+                if bottom_fudge:
+                    return translate( [ 0, bottom_fudge, 0 ] )( cherry_stab() )
+                else:
+                    return cherry_stab()
 
             elif stab_style['type'] == 'costar':
 
                 return costar_stab(bottom_fudge = bottom_fudge,
                                    height_fudge = height_fudge)
+
+            elif stab_style['type'] == 'costar_wide':
+
+                return costar_wide_stab(bottom_fudge = bottom_fudge,
+                                        height_fudge = height_fudge)
 
             elif stab_style['type'] == 'both':
 
