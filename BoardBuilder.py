@@ -10,7 +10,18 @@ from solid import *
 from solid.utils import *
 
 class BoardBuilder:
-    def __init__(self, kle_json, horizontal_pad=0.0, vertical_pad=0.0, corner_radius=0.0, num_holes=0, hole_diameter=0.0, show_points=False, stabs='both', max_wall=10.0, hole_side_count=-1):
+    def __init__(self, kle_json,
+                       horizontal_pad           = 0.0,
+                       vertical_pad             = 0.0,
+                       corner_radius            = 0.0,
+                       num_holes                = 0,
+                       hole_diameter            = 0.0,
+                       show_points              = False,
+                       stabs                    = 'cherry',
+                       max_wall                 = 10.0,
+                       hole_side_count          = -1,
+                       stab_vertical_adjustment =  0.0,
+                       stab_height_adjustment   =  0.0):
 
         f = open(kle_json)
         self.layout = json.load(f)
@@ -21,12 +32,14 @@ class BoardBuilder:
         self.min_y = 10000
         self.max_y = 0
 
-        self.show_points = show_points
-        self.stabs       = stabs
+        self.show_points              = show_points
+        self.stabs                    = stabs
+        self.stab_vertical_adjustment = stab_vertical_adjustment
+        self.stab_height_adjustment   = stab_height_adjustment
 
         self.corner_radius = corner_radius
 
-        self.num_holes = num_holes
+        self.num_holes     = num_holes
         self.hole_diameter = hole_diameter
 
         # Determine the left and right padding
@@ -236,24 +249,42 @@ class BoardBuilder:
                         translate( [ -3.325, 0, 0 ] )(
                             square(size=[6.65, 12.3 ] )
                         ),
+                        # Bottom notch.
                         translate( [-1.5, -1.2, 0] )(
                             square(size=[3.0, 2 ])
                         ),
                     ),
-                    # Cherry side notch.
+                    # Side notch.
                     translate( [ 0, -0.5, 0 ] )(
                         square(size=[4.2, 2.8 ] )
                     )
                 )
 
-            # Fudging parameters allow for us to tweak the costar cutout when combined with cherry.
+            # Fudging parameters allow for us to tweak the costar cutout.  These parameters are a leftover feature
+            # that I used while trying to figure out the following:
+            #
+            # The sticking and general lack of tactility for stabilized keys on previous boards made with this
+            # script are because of the Costar inserts rubbing too hard against the "tops" of the clips.  Most
+            # Costar references call for the top of the clip cutout to have a vertical offset of -0.75 mm WRT the
+            # top of the switch cutout, but that's also the point where keys seem to firmly stick...
+            #
+            # After much tuning and testing, dropping the offset to -0.45 produced the arguably "best" result.
+            # The stickiness is completely gone, tactile response is good, though the typical Costar rattliness also
+            # comes through.  The only other downside is that the wire "spring" can make contact with the switch
+            # housing when the stabilizer is in the full "up/open" position, which is fine for normal use, but
+            # can make switch installation and removal a little fidgety.  It's overall much better than a
+            # stabilizer that needs tons of tweaking, bending, and reshaping to keep from sticking.
+            #
+            # Those numbers are preserved below for reference sake.  Also, we expose the tuning parameters as
+            # options in case there's a desire to override them again.
+
             def costar_stab(height_fudge=0, bottom_fudge=0):
-                return translate( [ -1.65, -7.75+bottom_fudge, 0 ] )(
-                    square(size=[3.3, 14+height_fudge])
+                return translate( [ -1.65, -7.75 + 0.3 + bottom_fudge, 0 ] )(
+                    square(size=[3.3, 14 + height_fudge])
                 )
 
-            bottom_fudge = stab_style['bottom_fudge'] if 'bottom_fudge' in stab_style else 0.0
-            height_fudge = stab_style['height_fudge'] if 'height_fudge' in stab_style else 0.0
+            bottom_fudge = stab_style['bottom_fudge'] if 'bottom_fudge' in stab_style else self.stab_vertical_adjustment
+            height_fudge = stab_style['height_fudge'] if 'height_fudge' in stab_style else self.stab_height_adjustment
 
             if stab_style['type'] == 'cherry':
                 return cherry_stab()
@@ -265,8 +296,12 @@ class BoardBuilder:
 
             elif stab_style['type'] == 'both':
 
-                bottom_fudge += -0.22            # This lowers the costar cutout to align with the bottom cherry notch.
-                height_fudge +=  0.0
+                # Research results:  combined stabs can be okay for costar, but are bad for Cherry because they
+                # remove gripping surface for the built-in clip.  Their use should be discouraged.
+
+                bottom_fudge += -0.22   # This lowers the costar cutout to align with the bottom cherry notch.
+                                        # Use height_fudge to adjust the costar clips' top offsets.
+                                        # Or a Dremel.
 
                 return union()(
                     cherry_stab(),
@@ -649,18 +684,21 @@ if __name__ == "__main__":
             formatter_class = argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('-j',  '--json',            type=str,   default='',     required=True, help="JSON file to load.  Raw data download from keyboard-layout-editor.com.")
-    parser.add_argument('-o',  '--output_dir',      type=str,   default='.',    help="Directory into which the resulting .scad files will be generated.")
-    parser.add_argument('-s',  '--stabs',           choices=['both', 'cherry', 'costar'], default='both', help="Specify the style of stabilizers to generate.")
-    parser.add_argument('-hp', '--horizontal_pad',  type=str,   default='0.0',  help="Horizontal padding per side. Can also define left,right padding.")
-    parser.add_argument('-vp', '--vertical_pad',    type=str,   default='0.0',  help="Vertical padding per side. Can also define top,bottom padding.")
-    parser.add_argument('-mw', '--max_wall',        type=str,   default='10.0', help="Max mid-layer wall thickness. Can also be 'min_pad' or 'max_pad'")
-    parser.add_argument('-c',  '--corner_radius',   type=float, default=0.0,    help="Corner radius.")
-    parser.add_argument('-n',  '--num_holes',       type=int,   default=0,      help="Number of screw holes.")
-    parser.add_argument('-hd', '--hole_diameter',   type=float, default=0.0,    help="Screw hole diameter.")
-    parser.add_argument('-sp', '--show_points',     action="store_true",        help="Debug aid.  Add floating red points for key space rectangles.")
-    parser.add_argument('-hsc', '--hole_side_count', type=int, default=20,      help="How many sides to put on the screw holes. 20 is good for circles, 6 would be hex.")
-    
+    parser.add_argument('-j',   '--json',            type=str,   default='',     required=True, help="JSON file to load.  Raw data download from keyboard-layout-editor.com.")
+    parser.add_argument('-o',   '--output_dir',      type=str,   default='.',    help="Directory into which the resulting .scad files will be generated.")
+    parser.add_argument('-s',   '--stabs',           choices=['both', 'cherry', 'costar'], default='cherry', help="Specify the style of stabilizers to generate.")
+    parser.add_argument('-hp',  '--horizontal_pad',  type=str,   default='0.0',  help="Horizontal padding per side. Can also define left,right padding.")
+    parser.add_argument('-vp',  '--vertical_pad',    type=str,   default='0.0',  help="Vertical padding per side. Can also define top,bottom padding.")
+    parser.add_argument('-mw',  '--max_wall',        type=str,   default='10.0', help="Max mid-layer wall thickness. Can also be 'min_pad' or 'max_pad'")
+    parser.add_argument('-c',   '--corner_radius',   type=float, default=0.0,    help="Corner radius.")
+    parser.add_argument('-n',   '--num_holes',       type=int,   default=0,      help="Number of screw holes.")
+    parser.add_argument('-hd',  '--hole_diameter',   type=float, default=0.0,    help="Screw hole diameter.")
+    parser.add_argument('-sp',  '--show_points',     action="store_true",        help="Debug aid.  Add floating red points for key space rectangles.")
+    parser.add_argument('-hsc', '--hole_side_count', type=int,   default=20,     help="How many sides to put on the screw holes. 20 is good for circles, 6 would be hex.")
+
+    parser.add_argument('-sva','--stab_vertical_adjustment', type=float, default=0.0, help="Adjust the vertical positioning of Costar stabs.")
+    parser.add_argument('-sha','--stab_height_adjustment',   type=float, default=0.0, help="Adjust the vertical size of Costar stabs.")
+
     args = parser.parse_args()
 
     board = BoardBuilder(args.json,
@@ -672,7 +710,9 @@ if __name__ == "__main__":
                          args.show_points,
                          args.stabs,
                          args.max_wall,
-                         args.hole_side_count,)
+                         args.hole_side_count,
+                         args.stab_vertical_adjustment,
+                         args.stab_height_adjustment)
 
     board.render_top_plate(args.output_dir)
     board.render_bottom_plate(args.output_dir)
