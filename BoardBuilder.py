@@ -235,16 +235,20 @@ class BoardBuilder:
 
             # Basic combined stab hole.  Designed from Cherry specs:
             #
-            #   http://cherryamericas.com/wp-content/uploads/2014/12/mx_cat.pdf
+            #   Metric:  (offline as of 2018Nov25...)
+            #       http://cherryamericas.com/wp-content/uploads/2014/12/mx_cat.pdf
             #
-            #   Linked to from: http://cherryamericas.com/product/mx-series/
+            #       Linked to from: http://cherryamericas.com/product/mx-series/
+            #
+            #   Imperial:
+            #       https://media.digikey.com/pdf/Data%20Sheets/Cherry%20PDFs/MX%20Series.pdf
             #
             # One real nice thing about CSG is that you can just "follow the lines" on a spec drawing
             # with ordinary translations.
             #
             def cherry_stab():
                 # Cut out the main rectangle of the Cherry stab frame.  From its center:
-                return union()(
+                stab_hole = union()(
                     translate( [ 0, -6.77, 0 ] )(
                         translate( [ -3.325, 0, 0 ] )(
                             square(size=[6.65, 12.3 ] )
@@ -254,11 +258,22 @@ class BoardBuilder:
                             square(size=[3.0, 2 ])
                         ),
                     ),
-                    # Side notch.
+                    # Side notch.  Please note that the imperial spec drawing has an error.  The side notch
+                    #   guide line on the 1x2 doesn't actually go out to the side notch:  It traces down to
+                    #   the main stab rectangle corner instead.
                     translate( [ 0, -0.5, 0 ] )(
                         square(size=[4.2, 2.8 ] )
                     )
                 )
+
+                # But wait!  There's a difference between the metric and imperial drawings for the cherry stab
+                # cutout.  In the metric drawing, the offset between the tops of the switch hole and the stab hole
+                # comes out to 1.47mm.  In imperial, it comes out to 1.2954mm.  When installed in the metric hole,
+                # the sliders are visibly closer to the top of the housing than they are when we reduce the offset
+                # by 0.1mm... Particularly when DSA PBT and GMK caps are installed.  This offset reduction puts us
+                # roughly in the middle between the metric and imperial drawings.  We're within tolerance for both
+                # drawings, but we give ourselves some breathing room.
+                return translate( [ 0, 0.1, 0 ] )( stab_hole )
 
             # Fudging parameters allow for us to tweak the costar cutout.  These parameters are a leftover feature
             # that I used while trying to figure out the following:
@@ -268,18 +283,16 @@ class BoardBuilder:
             # Costar references call for the top of the clip cutout to have a vertical offset of -0.75 mm WRT the
             # top of the switch cutout, but that's also the point where keys seem to firmly stick...
             #
-            # After much tuning and testing, dropping the offset to -0.45 produced the arguably "best" result.
+            # After much tuning and testing, dropping the offset to -0.55 produced the arguably "best" result.
             # The stickiness is completely gone, tactile response is good, though the typical Costar rattliness also
-            # comes through.  The only other downside is that the wire "spring" can make contact with the switch
-            # housing when the stabilizer is in the full "up/open" position, which is fine for normal use, but
-            # can make switch installation and removal a little fidgety.  It's overall much better than a
-            # stabilizer that needs tons of tweaking, bending, and reshaping to keep from sticking.
+            # comes through.  It's overall much better than a stabilizer that needs tons of tweaking, bending, and
+            # reshaping to keep from sticking.
             #
             # Those numbers are preserved below for reference sake.  Also, we expose the tuning parameters as
             # options in case there's a desire to override them again.
 
             def costar_stab(height_fudge=0, bottom_fudge=0):
-                return translate( [ -1.65, -7.75 + 0.3 + bottom_fudge, 0 ] )(
+                return translate( [ -1.65, -7.75 + 0.2 + bottom_fudge, 0 ] )(
                     square(size=[3.3, 14 + height_fudge])
                 )
 
@@ -356,11 +369,11 @@ class BoardBuilder:
 
             if width_factor >= 8.0 or height_factor >= 8.0:
 
-                stab = build_stab(133.35)
+                stab = build_stab(133.35)       # == 5.25 inches.  Metric and imperial specs match.
 
             elif width_factor >= 7.0 or height_factor >= 7.0:
 
-                stab = build_stab(114.0)
+                stab = build_stab(114.3)        # == 4.5 inches.  Not given in metric spec.
 
             elif width_factor >= 6.25 or height_factor >= 6.25:
 
@@ -372,11 +385,23 @@ class BoardBuilder:
 
             elif width_factor >= 3.0 or height_factor >= 3.0:
 
-                stab = build_stab(38.1)
+                stab = build_stab(38.1)     # == 1.5 inches.  Metric and imperial specs match here...
 
             else:
 
-                stab = build_stab(23.8)
+                # Watch out!
+                # The metric spec calls for 23.8.  But in practice, that makes the inserts rub against
+                # the housing, and even catch the clips and possibly stick with some caps! (I experienced
+                # this with DSA, and GMK to a lesser extent)
+                # stab = build_stab(23.8)
+                #
+                # The imperial spec calls for 0.94 inches, which comes out to 23.876, possibly large
+                # enough to avoid the rubbing and clip catch.  Here we go with 23.88 for margin, within
+                # tolerance for both.
+                #
+                # NOTE: Speaking of the imperial spec, there's an error on the 1x2 drawing.  See the
+                #       description in build_stab().
+                stab = build_stab(23.88)
 
             # Important note: Because the plate gets flipped at the end, we have to build
             #   the geometry upside down!  i.e. notice the mirror call
