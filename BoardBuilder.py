@@ -23,9 +23,8 @@ class BoardBuilder:
                        stab_vertical_adjustment =  0.0,
                        stab_height_adjustment   =  0.0):
 
-        f = open(kle_json)
-        self.layout = json.load(f)
-        f.close()
+        with open(kle_json, encoding='utf-8') as f:
+            self.layout = json.loads(f.read())
 
         self.min_x = 10000
         self.max_x = 0
@@ -79,10 +78,9 @@ class BoardBuilder:
                 max_wall_thickness = max(walls)
 
             else:
-                print "WARNING: Unknown value for max_wall parameter: {0}. Defaulting to {1}".format(
-                        max_wall,
-                        max_wall_thickness
-                )
+                print("WARNING: Unknown value for max_wall parameter: {0}. Defaulting to {1}".format(
+                    max_wall,
+                    max_wall_thickness))
 
         self.left_wall_thickness   = min(max_wall_thickness, self.left_pad)
         self.right_wall_thickness  = min(max_wall_thickness, self.right_pad)
@@ -164,7 +162,7 @@ class BoardBuilder:
 
         def build_screw_hole_row(y, row_wall_thickness, row_is_top):
 
-            num_holes_in_row = self.num_holes / 2
+            num_holes_in_row = int(self.num_holes / 2)
             holes = []
 
             # Adjust the corner holes' so that their horizontal positions are dominated by the
